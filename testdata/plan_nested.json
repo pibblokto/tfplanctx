@@ -1,0 +1,30 @@
+{
+  "resource_changes": [
+    {
+      "address": "example_app.main",
+      "mode": "managed",
+      "type": "example_app",
+      "name": "main",
+      "change": {
+        "actions": ["update"],
+        "before": {
+          "settings": {
+            "replicas": 2,
+            "labels": {
+              "tier": "web"
+            }
+          }
+        },
+        "after": {
+          "settings": {
+            "replicas": 3,
+            "labels": {
+              "tier": "api"
+            }
+          }
+        },
+        "after_unknown": {}
+      }
+    }
+  ]
+}
