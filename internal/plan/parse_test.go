@@ -3,6 +3,7 @@ package plan_test
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/piblokto/tfplanctx/internal/plan"
@@ -135,20 +136,94 @@ func TestResourceFilter(t *testing.T) {
 	if len(filtered.Resources) != 1 || filtered.Resources[0].Address != "aws_security_group.web" {
 		t.Fatalf("filtered resources = %#v", filtered.Resources)
 	}
+	if got, want := filtered.Summary.Updates, 1; got != want {
+		t.Fatalf("filtered updates = %d, want %d", got, want)
+	}
+	if got, want := filtered.Summary.RiskResources, 1; got != want {
+		t.Fatalf("filtered risks = %d, want %d", got, want)
+	}
+}
+
+func TestTypeFilter(t *testing.T) {
+	parsed := mustParseFixture(t, "plan_main.json")
+	filtered := parsed.Filter("", "aws_instance")
+	if got, want := len(filtered.Resources), 2; got != want {
+		t.Fatalf("filtered resources = %d, want %d", got, want)
+	}
+	if got, want := filtered.Summary.Updates, 1; got != want {
+		t.Fatalf("filtered updates = %d, want %d", got, want)
+	}
+	if got, want := filtered.Summary.Replaces, 1; got != want {
+		t.Fatalf("filtered replaces = %d, want %d", got, want)
+	}
+}
+
+func TestReadChangesAreOptInAndNoOpsAreTracked(t *testing.T) {
+	data := mustReadFixture(t, "plan_read_noop.json")
+	withoutRead, err := plan.Parse(data, plan.ParseOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := len(withoutRead.Resources), 0; got != want {
+		t.Fatalf("resources without include-read = %d, want %d", got, want)
+	}
+	if got, want := len(withoutRead.NoOpResources), 1; got != want {
+		t.Fatalf("noop resources = %d, want %d", got, want)
+	}
+
+	withRead, err := plan.Parse(data, plan.ParseOptions{IncludeRead: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := len(withRead.Resources), 1; got != want {
+		t.Fatalf("resources with include-read = %d, want %d", got, want)
+	}
+	if got, want := withRead.Resources[0].Address, "data.aws_ami.ubuntu"; got != want {
+		t.Fatalf("read address = %q, want %q", got, want)
+	}
+}
+
+func TestFixtureJSONFilesHaveHumanReadablePairs(t *testing.T) {
+	entries, err := filepath.Glob(filepath.Join("..", "..", "testdata", "plan_*.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) == 0 {
+		t.Fatal("expected JSON fixtures")
+	}
+	for _, jsonPath := range entries {
+		textPath := strings.TrimSuffix(jsonPath, ".json") + ".tfplan.txt"
+		if _, err := os.Stat(textPath); err != nil {
+			t.Fatalf("fixture %s is missing paired Terraform text output %s: %v", jsonPath, textPath, err)
+		}
+	}
+}
+
+func TestMalformedJSONReturnsHelpfulError(t *testing.T) {
+	_, err := plan.Parse([]byte(`{"resource_changes": [`), plan.ParseOptions{})
+	if err == nil || !strings.Contains(err.Error(), "parse terraform JSON plan") {
+		t.Fatalf("err = %v", err)
+	}
 }
 
 func mustParseFixture(t *testing.T, name string) *plan.Plan {
+	t.Helper()
+	data := mustReadFixture(t, name)
+	parsed, err := plan.Parse(data, plan.ParseOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return parsed
+}
+
+func mustReadFixture(t *testing.T, name string) []byte {
 	t.Helper()
 	path := filepath.Join("..", "..", "testdata", name)
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed, err := plan.Parse(data, plan.ParseOptions{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	return parsed
+	return data
 }
 
 func findAttribute(t *testing.T, resource plan.ResourceChange, path string) plan.AttributeChange {

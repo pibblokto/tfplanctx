@@ -45,3 +45,32 @@ func TestPrivilegedKubernetesDetection(t *testing.T) {
 		t.Fatalf("risks = %#v", risks)
 	}
 }
+
+func TestHelmReleaseChangeDetection(t *testing.T) {
+	risks := Detect(Resource{
+		Type:   "helm_release",
+		Action: "U",
+		Changes: []diff.Change{{
+			Path:   diff.Path{{Key: "version"}},
+			Before: "1.0.0",
+			After:  "1.1.0",
+		}},
+	})
+	if len(risks) != 1 || risks[0] != "helm_release_changed" {
+		t.Fatalf("risks = %#v", risks)
+	}
+}
+
+func TestPublicCIDROnEgressDoesNotTriggerIngressRisk(t *testing.T) {
+	risks := Detect(Resource{
+		Type:   "aws_security_group_rule",
+		Action: "U",
+		After: map[string]any{
+			"type":        "egress",
+			"cidr_blocks": []any{"0.0.0.0/0"},
+		},
+	})
+	if len(risks) != 0 {
+		t.Fatalf("risks = %#v, want none", risks)
+	}
+}

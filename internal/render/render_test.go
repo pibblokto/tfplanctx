@@ -66,6 +66,38 @@ func TestRiskOnlyMode(t *testing.T) {
 	}
 }
 
+func TestSummaryModeCanIncludeNoOpResources(t *testing.T) {
+	p := samplePlan()
+	p.NoOpResources = []plan.ResourceChange{{Action: plan.ActionNoOp, Address: "null_resource.same"}}
+	got := RenderLine(p, Options{Summary: true, IncludeNoOp: true, Limits: DefaultLimits()})
+	if !strings.Contains(got, "N|null_resource.same|changes=0|") {
+		t.Fatalf("summary output missing no-op resource: %s", got)
+	}
+}
+
+func TestLongValuesAreSummarized(t *testing.T) {
+	value := plan.Value{Kind: plan.ValueRaw, Raw: strings.Repeat("x", 10)}
+	got := lineValue(value, Limits{MaxValueLen: 4, MaxListItems: 20, MaxObjectKeys: 30})
+	if !strings.HasPrefix(got, "long_string(len=10,sha256=") {
+		t.Fatalf("long string was not summarized: %s", got)
+	}
+}
+
+func TestJSONLHeaderOnlyBudgetOutputIsValidJSON(t *testing.T) {
+	p := samplePlan()
+	got, err := RenderJSONL(p, Options{HeaderOnly: true, Omitted: 5, Limits: DefaultLimits()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var decoded map[string]any
+	if err := json.Unmarshal([]byte(strings.TrimSpace(got)), &decoded); err != nil {
+		t.Fatalf("header-only JSONL is invalid: %v; output=%s", err, got)
+	}
+	if decoded["a"] != "H" || decoded["omitted"] != float64(5) {
+		t.Fatalf("decoded header = %#v", decoded)
+	}
+}
+
 func samplePlan() *plan.Plan {
 	return &plan.Plan{
 		Summary: plan.PlanSummary{Creates: 1, Updates: 1, Replaces: 1, Deletes: 1, OutputChanges: 1, RiskResources: 1},

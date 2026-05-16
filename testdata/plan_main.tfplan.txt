@@ -1,0 +1,84 @@
+Terraform will perform the following actions:
+
+  # aws_db_instance.old will be destroyed
+  - resource "aws_db_instance" "old" {
+      - identifier = "old-db" -> null
+    }
+
+  # aws_instance.app must be replaced
+-/+ resource "aws_instance" "app" {
+      ~ ami           = "ami-old" -> "ami-new" # forces replacement
+        instance_type = "t3.micro"
+    }
+
+  # aws_s3_bucket.logs will be created
+  + resource "aws_s3_bucket" "logs" {
+      + bucket = "prod-logs-example"
+    }
+
+  # aws_security_group.web will be updated in-place
+  ~ resource "aws_security_group" "web" {
+      ~ ingress {
+          ~ cidr_blocks = [
+              - "10.0.0.0/8",
+              + "0.0.0.0/0",
+            ]
+        }
+    }
+
+  # aws_instance.unknown will be updated in-place
+  ~ resource "aws_instance" "unknown" {
+      ~ id = "i-123" -> (known after apply)
+    }
+
+  # example_service.secret will be updated in-place
+  ~ resource "example_service" "secret" {
+      ~ config_value = (sensitive value)
+      ~ password     = (sensitive value)
+    }
+
+  # example_service.heuristic will be updated in-place
+  ~ resource "example_service" "heuristic" {
+      ~ api_token = (sensitive value)
+    }
+
+  # aws_iam_policy.admin will be updated in-place
+  ~ resource "aws_iam_policy" "admin" {
+      ~ policy = jsonencode({
+          ~ Statement = [
+              ~ {
+                  ~ Action   = ["ec2:DescribeInstances"] -> ["*"]
+                    Resource = ["*"]
+                },
+            ]
+        })
+    }
+
+  # helm_release.api will be updated in-place
+  ~ resource "helm_release" "api" {
+      ~ version = "1.0.0" -> "1.1.0"
+    }
+
+  # kubernetes_manifest.pod will be updated in-place
+  ~ resource "kubernetes_manifest" "pod" {
+      ~ manifest = {
+          ~ spec = {
+              ~ template = {
+                  ~ spec = {
+                      ~ containers = [
+                          ~ {
+                              ~ securityContext = {
+                                  ~ privileged = false -> true
+                                }
+                            },
+                        ]
+                    }
+                }
+            }
+        }
+    }
+
+Changes to Outputs:
+  ~ endpoint = "old.example.com" -> "new.example.com"
+
+Plan: 1 to add, 7 to change, 1 to destroy.

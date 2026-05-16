@@ -1,0 +1,17 @@
+{
+  "resource_changes": [
+    {
+      "address": "null_resource.same",
+      "mode": "managed",
+      "type": "null_resource",
+      "name": "same",
+      "change": {
+        "actions": ["no-op"],
+        "before": {"id": "same"},
+        "after": {"id": "same"},
+        "after_unknown": {}
+      }
+    }
+  ],
+  "output_changes": {}
+}

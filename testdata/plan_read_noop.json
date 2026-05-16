@@ -1,0 +1,28 @@
+{
+  "resource_changes": [
+    {
+      "address": "data.aws_ami.ubuntu",
+      "mode": "data",
+      "type": "aws_ami",
+      "name": "ubuntu",
+      "change": {
+        "actions": ["read"],
+        "before": {"id": "ami-old"},
+        "after": {"id": "ami-new"},
+        "after_unknown": {}
+      }
+    },
+    {
+      "address": "null_resource.same",
+      "mode": "managed",
+      "type": "null_resource",
+      "name": "same",
+      "change": {
+        "actions": ["no-op"],
+        "before": {"id": "same"},
+        "after": {"id": "same"},
+        "after_unknown": {}
+      }
+    }
+  ]
+}
