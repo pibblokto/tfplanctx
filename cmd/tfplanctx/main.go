@@ -4,10 +4,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/piblokto/tfplanctx/internal/benchmark"
 	"github.com/piblokto/tfplanctx/internal/budget"
 	"github.com/piblokto/tfplanctx/internal/input"
 	"github.com/piblokto/tfplanctx/internal/plan"
@@ -22,6 +24,7 @@ type config struct {
 	resource                      string
 	resourceType                  string
 	budget                        int
+	benchmark                     bool
 	includeRead                   bool
 	includeNoOp                   bool
 	noColor                       bool
@@ -33,17 +36,23 @@ type config struct {
 }
 
 func main() {
-	cfg, err := parseArgs(os.Args[1:])
+	os.Exit(run(context.Background(), os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
+}
+
+func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.Writer) int {
+	cfg, err := parseArgs(args, stderr)
 	if err != nil {
-		fatal(err)
+		reportError(stderr, err)
+		return 1
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
 
-	content, err := input.Load(ctx, cfg.inputPath, os.Stdin)
+	content, err := input.Load(ctx, cfg.inputPath, stdin)
 	if err != nil {
-		fatal(err)
+		reportError(stderr, err)
+		return 1
 	}
 
 	normalized, err := plan.Parse(content, plan.ParseOptions{
@@ -54,7 +63,8 @@ func main() {
 		},
 	})
 	if err != nil {
-		fatal(err)
+		reportError(stderr, err)
+		return 1
 	}
 
 	view := normalized.Filter(cfg.resource, cfg.resourceType)
@@ -72,34 +82,40 @@ func main() {
 		output, err = render.Render(cfg.format, view, opts)
 	}
 	if err != nil {
-		fatal(err)
+		reportError(stderr, err)
+		return 1
 	}
-	fmt.Print(output)
+	fmt.Fprint(stdout, output)
+	if cfg.benchmark {
+		fmt.Fprintln(stderr, benchmark.Compare(content, output).String())
+	}
 
 	if cfg.detailedExitCode {
 		switch {
 		case normalized.HasRisks():
-			os.Exit(3)
+			return 3
 		case normalized.HasChanges():
-			os.Exit(2)
+			return 2
 		default:
-			os.Exit(0)
+			return 0
 		}
 	}
+	return 0
 }
 
-func parseArgs(args []string) (config, error) {
+func parseArgs(args []string, stderr io.Writer) (config, error) {
 	var cfg config
 	cfg.limits = render.DefaultLimits()
 
 	fs := flag.NewFlagSet("tpc", flag.ContinueOnError)
-	fs.SetOutput(os.Stderr)
+	fs.SetOutput(stderr)
 	fs.StringVar(&cfg.format, "format", "line", "output format: line, jsonl, or markdown")
 	fs.BoolVar(&cfg.summary, "summary", false, "emit one line per changed resource")
 	fs.BoolVar(&cfg.riskOnly, "risk-only", false, "emit only risky changed resources")
 	fs.StringVar(&cfg.resource, "resource", "", "emit only the exact Terraform resource address")
 	fs.StringVar(&cfg.resourceType, "type", "", "emit only the exact Terraform resource type")
 	fs.IntVar(&cfg.budget, "budget", 0, "approximate output character budget")
+	fs.BoolVar(&cfg.benchmark, "benchmark", false, "print approximate token savings to stderr")
 	fs.BoolVar(&cfg.includeRead, "include-read", false, "include read/data-source style changes")
 	fs.BoolVar(&cfg.includeNoOp, "include-noop", false, "include no-op resource addresses in summary mode")
 	fs.BoolVar(&cfg.noColor, "no-color", false, "compatibility flag; output never uses color")
@@ -175,7 +191,6 @@ func reorderArgs(args []string) ([]string, error) {
 	return append(flags, positionals...), nil
 }
 
-func fatal(err error) {
-	fmt.Fprintf(os.Stderr, "tpc: %v\n", err)
-	os.Exit(1)
+func reportError(stderr io.Writer, err error) {
+	fmt.Fprintf(stderr, "tpc: %v\n", err)
 }

@@ -1,0 +1,8 @@
+Terraform will perform the following actions:
+
+  # data.aws_ami.ubuntu will be read during apply
+ <= data "aws_ami" "ubuntu" {
+      ~ id = "ami-old" -> "ami-new"
+    }
+
+Plan: 0 to add, 0 to change, 0 to destroy.

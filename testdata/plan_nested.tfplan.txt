@@ -1,0 +1,13 @@
+Terraform will perform the following actions:
+
+  # example_app.main will be updated in-place
+  ~ resource "example_app" "main" {
+      ~ settings = {
+          ~ labels   = {
+              ~ tier = "web" -> "api"
+            }
+          ~ replicas = 2 -> 3
+        }
+    }
+
+Plan: 0 to add, 1 to change, 0 to destroy.

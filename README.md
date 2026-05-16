@@ -117,6 +117,7 @@ Actions are normalized as follows:
 | `--resource <address>` | Emit only the exact Terraform resource address |
 | `--type <resource_type>` | Emit only the exact Terraform resource type |
 | `--budget <chars>` | Fit output to an approximate character budget |
+| `--benchmark` | Print approximate token savings to stderr |
 | `--include-read` | Include read/data-source style changes |
 | `--include-noop` | Include no-op resource addresses in summary mode |
 | `--max-value-len <n>` | Default `160` |
@@ -143,6 +144,14 @@ json(len=912,sha256=1a2b3c4d5e6f)
 ```
 
 When `--budget` forces records to be dropped, the line-protocol header adds `OMITTED=<count>` so agents can see that compression changed the level of detail.
+
+`--benchmark` prints a separate stderr line such as:
+
+```text
+BENCH approx_tokens_in=2210 approx_tokens_out=284 tokens_saved=1926 reduction=87.1% chars_in=8837 chars_out=1134
+```
+
+The benchmark uses the deterministic heuristic `ceil(chars / 4)` rather than a model-specific tokenizer, so it is useful for comparing transformations but should be treated as approximate.
 
 ## Risk annotations
 
