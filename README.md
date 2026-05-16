@@ -153,6 +153,22 @@ BENCH approx_tokens_in=2210 approx_tokens_out=284 tokens_saved=1926 reduction=87
 
 The benchmark uses the deterministic heuristic `ceil(chars / 4)` rather than a model-specific tokenizer, so it is useful for comparing transformations but should be treated as approximate.
 
+For a fixture-wide token-efficiency table, run:
+
+```bash
+make bench
+```
+
+This compares each JSON fixture with its default TFP1 line output and prints columns for raw tokens, TFP1 tokens, tokens saved, and reduction percentage.
+
+For developer runtime benchmarks of the parse/render pipeline, run:
+
+```bash
+make perf
+```
+
+Those Go microbenchmarks live in `internal/benchmark/transform_benchmark_test.go` and are separate from the user-facing `--benchmark` report.
+
 ## Risk annotations
 
 Initial deterministic risk rules include:

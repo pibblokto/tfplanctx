@@ -1,7 +1,7 @@
 GOCACHE ?= $(CURDIR)/.cache/go-build
 export GOCACHE
 
-.PHONY: test build lint
+.PHONY: test build lint bench perf
 
 test:
 	go test ./...
@@ -15,3 +15,9 @@ lint:
 	else \
 		echo "golangci-lint not installed; skipping"; \
 	fi
+
+bench:
+	go run ./cmd/tpcbench
+
+perf:
+	go test -run '^$$' -bench . ./...
