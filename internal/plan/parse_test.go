@@ -158,28 +158,47 @@ func TestTypeFilter(t *testing.T) {
 	}
 }
 
-func TestReadChangesAreOptInAndNoOpsAreTracked(t *testing.T) {
+func TestReadChangesAreRepresentedAndNoOpsAreTracked(t *testing.T) {
 	data := mustReadFixture(t, "plan_read_noop.json")
-	withoutRead, err := plan.Parse(data, plan.ParseOptions{})
+	parsed, err := plan.Parse(data, plan.ParseOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := len(withoutRead.Resources), 0; got != want {
-		t.Fatalf("resources without include-read = %d, want %d", got, want)
+	if got, want := len(parsed.Resources), 1; got != want {
+		t.Fatalf("resources = %d, want %d", got, want)
 	}
-	if got, want := len(withoutRead.NoOpResources), 1; got != want {
+	if got, want := parsed.Resources[0].Address, "data.aws_ami.ubuntu"; got != want {
+		t.Fatalf("read address = %q, want %q", got, want)
+	}
+	if got, want := parsed.Resources[0].Action, plan.ActionRead; got != want {
+		t.Fatalf("read action = %q, want %q", got, want)
+	}
+	if got, want := len(parsed.NoOpResources), 1; got != want {
 		t.Fatalf("noop resources = %d, want %d", got, want)
 	}
+}
 
-	withRead, err := plan.Parse(data, plan.ParseOptions{IncludeRead: true})
-	if err != nil {
-		t.Fatal(err)
+func TestDirectTerraformOutputChangesAreNormalized(t *testing.T) {
+	parsed := mustParseFixture(t, "plan_output_changes.json")
+	if got, want := parsed.Summary.OutputChanges, 7; got != want {
+		t.Fatalf("outputs = %d, want %d", got, want)
 	}
-	if got, want := len(withRead.Resources), 1; got != want {
-		t.Fatalf("resources with include-read = %d, want %d", got, want)
+	if got, want := parsed.Outputs[0].Name, "complex_output"; got != want {
+		t.Fatalf("first output name = %q, want %q", got, want)
 	}
-	if got, want := withRead.Resources[0].Address, "data.aws_ami.ubuntu"; got != want {
-		t.Fatalf("read address = %q, want %q", got, want)
+	unknown := findOutput(t, parsed, "output.unknown_after")
+	if got, want := unknown.Attributes[0].After.Kind, plan.ValueUnknown; got != want {
+		t.Fatalf("unknown output after = %s, want %s", got, want)
+	}
+	if got, want := unknown.UnknownPaths, []string{"value"}; len(got) != len(want) || got[0] != want[0] {
+		t.Fatalf("unknown output paths = %#v, want %#v", got, want)
+	}
+	sensitive := findOutput(t, parsed, "output.sensitive_output")
+	if got, want := sensitive.Attributes[0].Before.Kind, plan.ValueSensitive; got != want {
+		t.Fatalf("sensitive output before = %s, want %s", got, want)
+	}
+	if got, want := sensitive.SensitivePaths, []string{"value"}; len(got) != len(want) || got[0] != want[0] {
+		t.Fatalf("sensitive output paths = %#v, want %#v", got, want)
 	}
 }
 
@@ -235,6 +254,17 @@ func findAttribute(t *testing.T, resource plan.ResourceChange, path string) plan
 	}
 	t.Fatalf("attribute %s not found on %s", path, resource.Address)
 	return plan.AttributeChange{}
+}
+
+func findOutput(t *testing.T, parsed *plan.Plan, address string) plan.OutputChange {
+	t.Helper()
+	for _, output := range parsed.Outputs {
+		if output.Address == address {
+			return output
+		}
+	}
+	t.Fatalf("missing output %s", address)
+	return plan.OutputChange{}
 }
 
 func findResource(t *testing.T, parsed *plan.Plan, address string) plan.ResourceChange {

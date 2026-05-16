@@ -1,0 +1,11 @@
+Changes to Outputs:
+  + created          = "new-value"
+  - deleted          = "old-value" -> null
+  ~ updated          = "old-value" -> "new-value"
+  ~ unknown_after    = "old-value" -> (known after apply)
+  ~ sensitive_output = (sensitive value)
+  ~ complex_output   = {
+      ~ enabled = false -> true
+      ~ ports   = [80] -> [80, 443]
+    }
+  ~ long_output      = "(long value omitted here for fixture readability)"

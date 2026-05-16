@@ -10,6 +10,7 @@ const (
 	ActionUpdate  Action = "U"
 	ActionDelete  Action = "D"
 	ActionReplace Action = "R"
+	ActionRead    Action = "Q"
 	ActionOutput  Action = "O"
 	ActionNoOp    Action = "N"
 )
@@ -38,26 +39,63 @@ type Risk struct {
 
 // AttributeChange is one changed leaf attribute.
 type AttributeChange struct {
-	Path   string
-	Before Value
-	After  Value
-	Flags  []string
+	Path         string
+	Before       Value
+	After        Value
+	AfterUnknown bool
+	Sensitive    bool
+	ReplacePath  bool
+	Flags        []string
 }
 
-// ResourceChange is one changed Terraform resource.
+// ResourceChange is one changed Terraform resource with Terraform metadata preserved.
 type ResourceChange struct {
-	Action       Action
-	Address      string
-	Type         string
-	Attributes   []AttributeChange
-	ReplacePaths []string
-	Risks        []Risk
+	Action          Action
+	RawActions      []string
+	Address         string
+	PreviousAddress string
+	Mode            string
+	Type            string
+	Name            string
+	Index           any
+	ProviderName    string
+	ActionReason    string
+	Deposed         string
+	Importing       bool
+	GeneratedConfig bool
+	Attributes      []AttributeChange
+	UnknownPaths    []string
+	SensitivePaths  []string
+	ReplacePaths    []string
+	Risks           []Risk
 }
 
 // OutputChange is one changed Terraform output.
 type OutputChange struct {
-	Address    string
-	Attributes []AttributeChange
+	Name           string
+	Address        string
+	Action         Action
+	RawActions     []string
+	Attributes     []AttributeChange
+	UnknownPaths   []string
+	SensitivePaths []string
+}
+
+// DriftSummary stores compact drift overview information.
+type DriftSummary struct {
+	Total         int
+	RiskResources int
+	Types         []string
+}
+
+// PlanMetadata stores plan-wide metadata not tied to a single rendered value.
+type PlanMetadata struct {
+	CheckCount             int
+	FailedCheckCount       int
+	ImportCount            int
+	GeneratedConfigCount   int
+	RelevantFailureCount   int
+	RelevantAttributeCount int
 }
 
 // PlanSummary stores normalized plan counts.
@@ -66,6 +104,7 @@ type PlanSummary struct {
 	Updates       int
 	Replaces      int
 	Deletes       int
+	Reads         int
 	OutputChanges int
 	RiskResources int
 }
@@ -76,11 +115,14 @@ type Plan struct {
 	Resources     []ResourceChange
 	Outputs       []OutputChange
 	NoOpResources []ResourceChange
+	Drift         []ResourceChange
+	DriftSummary  DriftSummary
+	Metadata      PlanMetadata
 }
 
-// Filter returns a shallow filtered copy while preserving the original summary header.
+// Filter returns a shallow filtered copy with recalculated summaries.
 func (p *Plan) Filter(address, resourceType string) *Plan {
-	filtered := &Plan{}
+	filtered := &Plan{Metadata: p.Metadata}
 	for _, resource := range p.Resources {
 		if address != "" && resource.Address != address {
 			continue
@@ -108,13 +150,23 @@ func (p *Plan) Filter(address, resourceType string) *Plan {
 		}
 		filtered.NoOpResources = append(filtered.NoOpResources, resource)
 	}
+	for _, drift := range p.Drift {
+		if address != "" && drift.Address != address {
+			continue
+		}
+		if resourceType != "" && drift.Type != resourceType {
+			continue
+		}
+		filtered.Drift = append(filtered.Drift, drift)
+	}
 	filtered.Summary = summarize(filtered)
+	filtered.DriftSummary = summarizeDrift(filtered.Drift)
 	return filtered
 }
 
 // HasChanges reports whether the original normalized plan contains material changes.
 func (p *Plan) HasChanges() bool {
-	return p.Summary.Creates > 0 || p.Summary.Updates > 0 || p.Summary.Replaces > 0 || p.Summary.Deletes > 0 || p.Summary.OutputChanges > 0
+	return p.Summary.Creates > 0 || p.Summary.Updates > 0 || p.Summary.Replaces > 0 || p.Summary.Deletes > 0 || p.Summary.Reads > 0 || p.Summary.OutputChanges > 0
 }
 
 // HasRisks reports whether any changed resource carries a risk annotation.
@@ -124,29 +176,37 @@ func (p *Plan) HasRisks() bool {
 
 // Sort applies the stable global ordering contract.
 func (p *Plan) Sort() {
-	sort.Slice(p.Resources, func(i, j int) bool {
-		left, right := p.Resources[i], p.Resources[j]
+	sortResources(p.Resources)
+	sortResources(p.NoOpResources)
+	sortResources(p.Drift)
+	for i := range p.Outputs {
+		sort.Slice(p.Outputs[i].Attributes, func(a, b int) bool {
+			return p.Outputs[i].Attributes[a].Path < p.Outputs[i].Attributes[b].Path
+		})
+		sort.Strings(p.Outputs[i].UnknownPaths)
+		sort.Strings(p.Outputs[i].SensitivePaths)
+	}
+	sort.Slice(p.Outputs, func(i, j int) bool {
+		return p.Outputs[i].Address < p.Outputs[j].Address
+	})
+}
+
+func sortResources(resources []ResourceChange) {
+	sort.Slice(resources, func(i, j int) bool {
+		left, right := resources[i], resources[j]
 		if actionRank(left.Action) != actionRank(right.Action) {
 			return actionRank(left.Action) < actionRank(right.Action)
 		}
 		return left.Address < right.Address
 	})
-	for i := range p.Resources {
-		sort.Slice(p.Resources[i].Attributes, func(a, b int) bool {
-			return p.Resources[i].Attributes[a].Path < p.Resources[i].Attributes[b].Path
+	for i := range resources {
+		sort.Slice(resources[i].Attributes, func(a, b int) bool {
+			return resources[i].Attributes[a].Path < resources[i].Attributes[b].Path
 		})
+		sort.Strings(resources[i].UnknownPaths)
+		sort.Strings(resources[i].SensitivePaths)
+		sort.Strings(resources[i].ReplacePaths)
 	}
-	for i := range p.Outputs {
-		sort.Slice(p.Outputs[i].Attributes, func(a, b int) bool {
-			return p.Outputs[i].Attributes[a].Path < p.Outputs[i].Attributes[b].Path
-		})
-	}
-	sort.Slice(p.Outputs, func(i, j int) bool {
-		return p.Outputs[i].Address < p.Outputs[j].Address
-	})
-	sort.Slice(p.NoOpResources, func(i, j int) bool {
-		return p.NoOpResources[i].Address < p.NoOpResources[j].Address
-	})
 }
 
 func actionRank(action Action) int {
@@ -159,9 +219,11 @@ func actionRank(action Action) int {
 		return 2
 	case ActionUpdate:
 		return 3
-	case ActionOutput:
+	case ActionRead:
 		return 4
-	default:
+	case ActionOutput:
 		return 5
+	default:
+		return 6
 	}
 }

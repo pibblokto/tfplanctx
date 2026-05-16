@@ -1,0 +1,192 @@
+{
+  "resource_changes": [
+    {
+      "address": "module.deepsearch_dev_team_roles[\"backend\"].google_project_iam_member.roles[\"roles/run.admin-group:backend-developers@example.com\"]",
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "roles",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "project": "deepsearch-dev",
+          "member": "group:backend-developers@example.com",
+          "role": "roles/run.admin",
+          "condition": []
+        },
+        "after_unknown": {
+          "id": true,
+          "etag": true
+        }
+      }
+    },
+    {
+      "address": "module.deepsearch_dev_team_roles[\"backend\"].google_project_iam_member.roles[\"roles/secretmanager.admin-group:backend-developers@example.com\"]",
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "roles",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "project": "deepsearch-dev",
+          "member": "group:backend-developers@example.com",
+          "role": "roles/secretmanager.admin",
+          "condition": []
+        },
+        "after_unknown": {
+          "id": true,
+          "etag": true
+        }
+      }
+    },
+    {
+      "address": "module.deepsearch_dev_team_roles[\"backend\"].google_project_iam_member.roles[\"roles/viewer-group:backend-developers@example.com\"]",
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "roles",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "project": "deepsearch-dev",
+          "member": "group:backend-developers@example.com",
+          "role": "roles/viewer",
+          "condition": []
+        },
+        "after_unknown": {
+          "id": true,
+          "etag": true
+        }
+      }
+    },
+    {
+      "address": "module.deepsearch_dev_team_roles[\"backend\"].google_project_iam_member.roles[\"roles/cloudconfig.admin-group:backend-developers@example.com\"]",
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "roles",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "project": "deepsearch-dev",
+          "member": "group:backend-developers@example.com",
+          "role": "roles/cloudconfig.admin",
+          "condition": []
+        },
+        "after_unknown": {
+          "id": true,
+          "etag": true
+        }
+      }
+    },
+    {
+      "address": "module.deepsearch_dev_direct_roles[\"alice\"].google_project_iam_member.roles[\"roles/run.admin-user:alice@example.com\"]",
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "roles",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "action_reason": "delete_because_no_resource_config",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "project": "deepsearch-dev",
+          "member": "user:alice@example.com",
+          "role": "roles/run.admin",
+          "condition": []
+        },
+        "after": null,
+        "after_unknown": {}
+      }
+    },
+    {
+      "address": "module.deepsearch_dev_direct_roles[\"alice\"].google_project_iam_member.roles[\"roles/secretmanager.admin-user:alice@example.com\"]",
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "roles",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "action_reason": "delete_because_no_resource_config",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "project": "deepsearch-dev",
+          "member": "user:alice@example.com",
+          "role": "roles/secretmanager.admin",
+          "condition": []
+        },
+        "after": null,
+        "after_unknown": {}
+      }
+    },
+    {
+      "address": "module.deepsearch_dev_direct_roles[\"alice\"].google_project_iam_member.roles[\"roles/viewer-user:alice@example.com\"]",
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "roles",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "action_reason": "delete_because_no_resource_config",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "project": "deepsearch-dev",
+          "member": "user:alice@example.com",
+          "role": "roles/viewer",
+          "condition": []
+        },
+        "after": null,
+        "after_unknown": {}
+      }
+    },
+    {
+      "address": "google_artifact_registry_repository.deepsearch_dev_repository",
+      "mode": "managed",
+      "type": "google_artifact_registry_repository",
+      "name": "deepsearch_dev_repository",
+      "change": {
+        "actions": ["delete", "create"],
+        "before": {"repository_id": "deepsearch-backend-repository"},
+        "after": {"repository_id": "deepsearch-backend-repository2"},
+        "after_unknown": {},
+        "replace_paths": [["repository_id"]]
+      }
+    },
+    {
+      "address": "google_dns_record_set.dns_record",
+      "mode": "managed",
+      "type": "google_dns_record_set",
+      "name": "dns_record",
+      "change": {
+        "actions": ["update"],
+        "before": {"ttl": 300},
+        "after": {"ttl": 400},
+        "after_unknown": {}
+      }
+    }
+  ],
+  "output_changes": {
+    "artifact_registry_repository": {
+      "actions": ["update"],
+      "before": "deepsearch-backend-repository",
+      "after": "deepsearch-backend-repository2-adasd",
+      "after_unknown": false
+    }
+  },
+  "resource_drift": [
+    {
+      "address": "google_project_iam_member.drift_only",
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "roles",
+      "change": {
+        "actions": ["update"],
+        "before": {"etag": "old-etag"},
+        "after": {"etag": "new-etag"},
+        "after_unknown": {}
+      }
+    }
+  ]
+}

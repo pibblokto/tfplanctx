@@ -15,10 +15,11 @@ func TestRunPrintsCompressionTable(t *testing.T) {
 	got := out.String()
 	for _, want := range []string{
 		"fixture",
-		"raw_tokens",
-		"tfp1_tokens",
-		"tokens_saved",
-		"reduction",
+		"json_tokens",
+		"review_tokens",
+		"detail_tokens",
+		"review_saved",
+		"review_reduction",
 		"plan_main.json",
 	} {
 		if !strings.Contains(got, want) {

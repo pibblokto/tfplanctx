@@ -1,0 +1,248 @@
+{
+  "resource_changes": [
+    {
+      "address": "module.a.google_project_iam_member.create_0",
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "create_0",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "member": "group:0@example.com",
+          "project": "project-a",
+          "role": "roles/viewer",
+          "condition": []
+        },
+        "after_unknown": {
+          "id": true,
+          "etag": true
+        }
+      }
+    },
+    {
+      "address": "module.a.google_project_iam_member.create_1",
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "create_1",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "member": "group:1@example.com",
+          "project": "project-a",
+          "role": "roles/viewer",
+          "condition": []
+        },
+        "after_unknown": {
+          "id": true,
+          "etag": true
+        }
+      }
+    },
+    {
+      "address": "module.a.google_project_iam_member.create_2",
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "create_2",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "member": "group:2@example.com",
+          "project": "project-a",
+          "role": "roles/viewer",
+          "condition": []
+        },
+        "after_unknown": {
+          "id": true,
+          "etag": true
+        }
+      }
+    },
+    {
+      "address": "module.a.google_project_iam_member.create_3",
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "create_3",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "member": "group:3@example.com",
+          "project": "project-a",
+          "role": "roles/viewer",
+          "condition": []
+        },
+        "after_unknown": {
+          "id": true,
+          "etag": true
+        }
+      }
+    },
+    {
+      "address": "module.a.google_project_iam_member.create_4",
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "create_4",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "member": "group:4@example.com",
+          "project": "project-a",
+          "role": "roles/viewer",
+          "condition": []
+        },
+        "after_unknown": {
+          "id": true,
+          "etag": true
+        }
+      }
+    },
+    {
+      "address": "module.a.google_project_iam_member.create_5",
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "create_5",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "member": "group:5@example.com",
+          "project": "project-a",
+          "role": "roles/viewer",
+          "condition": []
+        },
+        "after_unknown": {
+          "id": true,
+          "etag": true
+        }
+      }
+    },
+    {
+      "address": "module.b.google_project_iam_member.delete_0",
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "delete_0",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "action_reason": "delete_because_no_resource_config",
+      "change": {
+        "actions": [
+          "delete"
+        ],
+        "before": {
+          "member": "user:0@example.com",
+          "project": "project-a",
+          "role": "roles/editor",
+          "condition": []
+        },
+        "after": null,
+        "after_unknown": {}
+      }
+    },
+    {
+      "address": "module.b.google_project_iam_member.delete_1",
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "delete_1",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "action_reason": "delete_because_no_resource_config",
+      "change": {
+        "actions": [
+          "delete"
+        ],
+        "before": {
+          "member": "user:1@example.com",
+          "project": "project-a",
+          "role": "roles/editor",
+          "condition": []
+        },
+        "after": null,
+        "after_unknown": {}
+      }
+    },
+    {
+      "address": "module.b.google_project_iam_member.delete_2",
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "delete_2",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "action_reason": "delete_because_no_resource_config",
+      "change": {
+        "actions": [
+          "delete"
+        ],
+        "before": {
+          "member": "user:2@example.com",
+          "project": "project-a",
+          "role": "roles/editor",
+          "condition": []
+        },
+        "after": null,
+        "after_unknown": {}
+      }
+    },
+    {
+      "address": "module.b.google_project_iam_member.delete_3",
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "delete_3",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "action_reason": "delete_because_no_resource_config",
+      "change": {
+        "actions": [
+          "delete"
+        ],
+        "before": {
+          "member": "user:3@example.com",
+          "project": "project-a",
+          "role": "roles/editor",
+          "condition": []
+        },
+        "after": null,
+        "after_unknown": {}
+      }
+    },
+    {
+      "address": "module.b.google_project_iam_member.delete_4",
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "delete_4",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "action_reason": "delete_because_no_resource_config",
+      "change": {
+        "actions": [
+          "delete"
+        ],
+        "before": {
+          "member": "user:4@example.com",
+          "project": "project-a",
+          "role": "roles/editor",
+          "condition": []
+        },
+        "after": null,
+        "after_unknown": {}
+      }
+    }
+  ],
+  "output_changes": {}
+}

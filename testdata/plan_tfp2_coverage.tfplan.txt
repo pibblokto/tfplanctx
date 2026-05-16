@@ -1,0 +1,19 @@
+Terraform will perform the following actions:
+
+  # module.foo.terraform_data.validation will be created
+  + resource "terraform_data" "validation" {
+      + id = (known after apply)
+    }
+
+  # module.foo.aws_s3_bucket.old will be destroyed
+  - resource "aws_s3_bucket" "old" {
+      - bucket = "old-bucket" -> null
+    }
+
+  # aws_db_instance.main must be replaced
+-/+ resource "aws_db_instance" "main" {
+      ~ identifier     = "db-old" -> "db-new"
+      ~ engine_version = "13" -> "16"
+    }
+
+Plan includes drift, sensitive values, import metadata, and output changes for TFP2 coverage.

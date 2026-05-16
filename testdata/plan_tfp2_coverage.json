@@ -1,0 +1,117 @@
+{
+  "resource_changes": [
+    {
+      "address": "module.foo.terraform_data.validation",
+      "mode": "managed",
+      "type": "terraform_data",
+      "name": "validation",
+      "provider_name": "terraform.io/builtin/terraform",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {},
+        "after_unknown": {"id": true}
+      }
+    },
+    {
+      "address": "module.foo.aws_s3_bucket.old",
+      "mode": "managed",
+      "type": "aws_s3_bucket",
+      "name": "old",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "action_reason": "delete_because_no_resource_config",
+      "change": {
+        "actions": ["delete"],
+        "before": {"bucket": "old-bucket"},
+        "after": null,
+        "after_unknown": {}
+      }
+    },
+    {
+      "address": "example_resource.special",
+      "mode": "managed",
+      "type": "example_resource",
+      "name": "special",
+      "change": {
+        "actions": ["update"],
+        "before": {"labels": {"a.b[0]|x": "old"}},
+        "after": {"labels": {"a.b[0]|x": "new"}},
+        "after_unknown": {}
+      }
+    },
+    {
+      "address": "aws_db_instance.main",
+      "mode": "managed",
+      "type": "aws_db_instance",
+      "name": "main",
+      "action_reason": "replace_because_cannot_update",
+      "change": {
+        "actions": ["delete", "create"],
+        "before": {"identifier": "db-old", "engine_version": "13"},
+        "after": {"identifier": "db-new", "engine_version": "16"},
+        "after_unknown": {},
+        "replace_paths": [["identifier"]]
+      }
+    },
+    {
+      "address": "example_service.secret",
+      "mode": "managed",
+      "type": "example_service",
+      "name": "secret",
+      "change": {
+        "actions": ["update"],
+        "before": {"password": "old"},
+        "after": {"password": "new"},
+        "after_unknown": {},
+        "before_sensitive": {"password": true},
+        "after_sensitive": {"password": true}
+      }
+    },
+    {
+      "address": "aws_instance.imported",
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "imported",
+      "deposed": "deadbeef",
+      "generated_config": "resource \"aws_instance\" \"imported\" {}",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {"ami": "ami-123", "tags": null},
+        "after_unknown": {"arn": true, "id": true},
+        "importing": {"id": "i-abc"}
+      }
+    }
+  ],
+  "output_changes": {
+    "endpoint": {
+      "change": {
+        "actions": ["update"],
+        "before": "old.example.com",
+        "after": "new.example.com",
+        "after_unknown": false
+      }
+    }
+  },
+  "resource_drift": [
+    {
+      "address": "aws_security_group.web",
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "web",
+      "change": {
+        "actions": ["update"],
+        "before": {"ingress": [{"cidr_blocks": ["10.0.0.0/8"]}]},
+        "after": {"ingress": [{"cidr_blocks": ["0.0.0.0/0"]}]},
+        "after_unknown": {}
+      }
+    }
+  ],
+  "checks": [
+    {"status": "pass"},
+    {"status": "fail"}
+  ],
+  "relevant_attributes": [
+    {"resource": "aws_db_instance.main", "attribute": ["identifier"]}
+  ]
+}

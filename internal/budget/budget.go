@@ -13,7 +13,47 @@ func Fit(p *plan.Plan, format string, base render.Options, maxChars int) (string
 		output, err := render.Render(format, p, base)
 		return output, base, err
 	}
+	if format == "compact" {
+		return fitCompact(p, format, base, maxChars)
+	}
+	return fitLegacy(p, format, base, maxChars)
+}
 
+func fitCompact(p *plan.Plan, format string, base render.Options, maxChars int) (string, render.Options, error) {
+	baselineDetails := render.CompactDetailCount(p, base)
+	candidates := []render.Options{
+		base,
+		withLimits(base, shrink(base.Limits, 2)),
+		withLimits(base, shrink(base.Limits, 4)),
+	}
+	metadataOnly := base
+	metadataOnly.MetadataOnly = true
+	candidates = append(candidates, metadataOnly)
+	minimal := metadataOnly
+	minimal.NoGroups = true
+	candidates = append(candidates, minimal)
+
+	var lastOutput string
+	var lastOpts render.Options
+	for _, candidate := range candidates {
+		candidate.Omitted = max(0, baselineDetails-render.CompactDetailCount(p, candidate))
+		output, err := render.Render(format, p, candidate)
+		if err != nil {
+			return "", candidate, err
+		}
+		lastOutput, lastOpts = output, candidate
+		if len(output) <= maxChars {
+			return output, candidate, nil
+		}
+	}
+	if lastOutput == "" {
+		return "", lastOpts, fmt.Errorf("rendered empty output under budget")
+	}
+	// Resource-presence and metadata guarantees take precedence over an impossible budget.
+	return lastOutput, lastOpts, nil
+}
+
+func fitLegacy(p *plan.Plan, format string, base render.Options, maxChars int) (string, render.Options, error) {
 	baseline := base
 	baselineCount := render.RecordCount(p, baseline)
 	candidates := []render.Options{baseline}

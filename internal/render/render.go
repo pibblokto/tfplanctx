@@ -27,9 +27,12 @@ func DefaultLimits() Limits {
 type Options struct {
 	Summary       bool
 	RiskOnly      bool
+	Detail        bool
 	EssentialOnly bool
 	HeaderOnly    bool
 	IncludeNoOp   bool
+	MetadataOnly  bool
+	NoGroups      bool
 	Omitted       int
 	Limits        Limits
 }
@@ -40,6 +43,8 @@ func Render(format string, p *plan.Plan, opts Options) (string, error) {
 		opts.Limits = DefaultLimits()
 	}
 	switch format {
+	case "compact":
+		return RenderCompact(p, opts), nil
 	case "line":
 		return RenderLine(p, opts), nil
 	case "jsonl":
@@ -104,6 +109,10 @@ func RenderLine(p *plan.Plan, opts Options) string {
 	}
 
 	for _, resource := range selectedResources(p, opts) {
+		if len(resource.Attributes) == 0 {
+			fmt.Fprintf(&b, "%s|%s|self|null|null|attrs=none\n", resource.Action, resource.Address)
+			continue
+		}
 		for _, attribute := range resource.Attributes {
 			fmt.Fprintf(&b, "%s|%s|%s|%s|%s|%s\n",
 				resource.Action,
@@ -185,6 +194,19 @@ func RenderJSONL(p *plan.Plan, opts Options) (string, error) {
 		}
 	} else {
 		for _, resource := range selectedResources(p, opts) {
+			if len(resource.Attributes) == 0 {
+				line, err := marshalJSONLine(map[string]any{
+					"a":     string(resource.Action),
+					"addr":  resource.Address,
+					"attrs": "none",
+					"flags": resource.SummaryFlags(),
+				})
+				if err != nil {
+					return "", err
+				}
+				lines = append(lines, line)
+				continue
+			}
 			for _, attribute := range resource.Attributes {
 				line, err := marshalJSONLine(map[string]any{
 					"a":     string(resource.Action),
@@ -264,6 +286,14 @@ func RenderMarkdown(p *plan.Plan, opts Options) string {
 	b.WriteString("\n| Action | Address | Path | Before | After | Flags |\n")
 	b.WriteString("| --- | --- | --- | --- | --- | --- |\n")
 	for _, resource := range selectedResources(p, opts) {
+		if len(resource.Attributes) == 0 {
+			fmt.Fprintf(&b, "| %s | %s | self | null | null | %s |\n",
+				resource.Action,
+				markdownCell(resource.Address),
+				markdownCell(strings.Join(resource.SummaryFlags(), ",")),
+			)
+			continue
+		}
 		for _, attribute := range resource.Attributes {
 			fmt.Fprintf(&b, "| %s | %s | %s | %s | %s | %s |\n",
 				resource.Action,
@@ -307,7 +337,7 @@ func selectedResources(p *plan.Plan, opts Options) []plan.ResourceChange {
 }
 
 func headerLine(summary plan.PlanSummary, omitted int) string {
-	header := fmt.Sprintf("TFP1 C=%d U=%d R=%d D=%d OUT=%d RISK=%d", summary.Creates, summary.Updates, summary.Replaces, summary.Deletes, summary.OutputChanges, summary.RiskResources)
+	header := fmt.Sprintf("TFP1 C=%d U=%d R=%d D=%d Q=%d OUT=%d RISK=%d", summary.Creates, summary.Updates, summary.Replaces, summary.Deletes, summary.Reads, summary.OutputChanges, summary.RiskResources)
 	if omitted > 0 {
 		header += fmt.Sprintf(" OMITTED=%d", omitted)
 	}
@@ -321,6 +351,7 @@ func summaryObject(summary plan.PlanSummary, omitted int) map[string]any {
 		"u":    summary.Updates,
 		"r":    summary.Replaces,
 		"d":    summary.Deletes,
+		"q":    summary.Reads,
 		"out":  summary.OutputChanges,
 		"risk": summary.RiskResources,
 	}
@@ -331,19 +362,24 @@ func summaryObject(summary plan.PlanSummary, omitted int) map[string]any {
 }
 
 func lineValue(value plan.Value, limits Limits) string {
+	rendered, _ := lineValueWithSummary(value, limits)
+	return rendered
+}
+
+func lineValueWithSummary(value plan.Value, limits Limits) (string, bool) {
 	switch value.Kind {
 	case plan.ValueNull:
-		return "null"
+		return "null", false
 	case plan.ValueUnknown:
-		return "unknown"
+		return "unknown", false
 	case plan.ValueSensitive:
-		return "sensitive"
+		return "sensitive", false
 	case plan.ValueExists:
-		return "exists"
+		return "exists", false
 	case plan.ValueRaw:
-		return compactValue(value.Raw, limits)
+		return compactValueWithSummary(value.Raw, limits)
 	default:
-		return "null"
+		return "null", false
 	}
 }
 
@@ -365,17 +401,22 @@ func jsonValue(value plan.Value, limits Limits) any {
 }
 
 func compactValue(value any, limits Limits) string {
+	rendered, _ := compactValueWithSummary(value, limits)
+	return rendered
+}
+
+func compactValueWithSummary(value any, limits Limits) (string, bool) {
 	if summarized, ok := summaryValue(value, limits); ok {
-		return summarized
+		return summarized, true
 	}
 	encoded, err := json.Marshal(value)
 	if err != nil {
-		return fmt.Sprintf("json(len=0,sha256=%s)", hashPrefix(nil))
+		return fmt.Sprintf("json(len=0,sha256=%s)", hashPrefix(nil)), true
 	}
 	if limits.MaxValueLen > 0 && len(encoded) > limits.MaxValueLen {
-		return fmt.Sprintf("json(len=%d,sha256=%s)", len(encoded), hashPrefix(encoded))
+		return summarizedEncodedValue(value, encoded), true
 	}
-	return string(encoded)
+	return string(encoded), false
 }
 
 func compactJSONValue(value any, limits Limits) any {
@@ -387,7 +428,7 @@ func compactJSONValue(value any, limits Limits) any {
 		return fmt.Sprintf("json(len=0,sha256=%s)", hashPrefix(nil))
 	}
 	if limits.MaxValueLen > 0 && len(encoded) > limits.MaxValueLen {
-		return fmt.Sprintf("json(len=%d,sha256=%s)", len(encoded), hashPrefix(encoded))
+		return summarizedEncodedValue(value, encoded)
 	}
 	return value
 }
@@ -400,14 +441,39 @@ func summaryValue(value any, limits Limits) (string, bool) {
 		}
 	case []any:
 		if limits.MaxListItems > 0 && len(typed) > limits.MaxListItems {
-			return fmt.Sprintf("list(len=%d)", len(typed)), true
+			encoded, _ := json.Marshal(typed)
+			return fmt.Sprintf("list(len=%d,sha256=%s)", len(typed), hashPrefix(encoded)), true
 		}
 	case map[string]any:
 		if limits.MaxObjectKeys > 0 && len(typed) > limits.MaxObjectKeys {
-			return fmt.Sprintf("object(keys=%d)", len(typed)), true
+			encoded, _ := json.Marshal(typed)
+			return summarizedObjectValue(typed, encoded), true
 		}
 	}
 	return "", false
+}
+
+func summarizedEncodedValue(value any, encoded []byte) string {
+	switch typed := value.(type) {
+	case map[string]any:
+		return summarizedObjectValue(typed, encoded)
+	case []any:
+		return fmt.Sprintf("list(len=%d,sha256=%s)", len(typed), hashPrefix(encoded))
+	default:
+		return fmt.Sprintf("json(len=%d,sha256=%s)", len(encoded), hashPrefix(encoded))
+	}
+}
+
+func summarizedObjectValue(value map[string]any, encoded []byte) string {
+	keys := make([]string, 0, len(value))
+	for key := range value {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	if len(keys) > 3 {
+		keys = keys[:3]
+	}
+	return fmt.Sprintf("object(len=%d,sha256=%s,keys=%s)", len(encoded), hashPrefix(encoded), strings.Join(keys, ","))
 }
 
 func hashPrefix(value []byte) string {
