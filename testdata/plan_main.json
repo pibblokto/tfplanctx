@@ -1,0 +1,245 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.0",
+  "resource_changes": [
+    {
+      "address": "aws_security_group.web",
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "web",
+      "change": {
+        "actions": ["update"],
+        "before": {
+          "ingress": [
+            {
+              "cidr_blocks": ["10.0.0.0/8"],
+              "from_port": 443,
+              "to_port": 443,
+              "protocol": "tcp"
+            }
+          ]
+        },
+        "after": {
+          "ingress": [
+            {
+              "cidr_blocks": ["0.0.0.0/0"],
+              "from_port": 443,
+              "to_port": 443,
+              "protocol": "tcp"
+            }
+          ]
+        },
+        "after_unknown": {}
+      }
+    },
+    {
+      "address": "aws_s3_bucket.logs",
+      "mode": "managed",
+      "type": "aws_s3_bucket",
+      "name": "logs",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "bucket": "prod-logs-example"
+        },
+        "after_unknown": {}
+      }
+    },
+    {
+      "address": "aws_instance.app",
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "app",
+      "change": {
+        "actions": ["delete", "create"],
+        "before": {
+          "ami": "ami-old",
+          "instance_type": "t3.micro"
+        },
+        "after": {
+          "ami": "ami-new",
+          "instance_type": "t3.micro"
+        },
+        "after_unknown": {},
+        "replace_paths": [["ami"]]
+      }
+    },
+    {
+      "address": "aws_db_instance.old",
+      "mode": "managed",
+      "type": "aws_db_instance",
+      "name": "old",
+      "change": {
+        "actions": ["delete"],
+        "before": {
+          "identifier": "old-db"
+        },
+        "after": null,
+        "after_unknown": {}
+      }
+    },
+    {
+      "address": "aws_instance.unknown",
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "unknown",
+      "change": {
+        "actions": ["update"],
+        "before": {
+          "id": "i-123"
+        },
+        "after": {
+          "id": "i-123"
+        },
+        "after_unknown": {
+          "id": true
+        }
+      }
+    },
+    {
+      "address": "example_service.secret",
+      "mode": "managed",
+      "type": "example_service",
+      "name": "secret",
+      "change": {
+        "actions": ["update"],
+        "before": {
+          "config_value": "old-config",
+          "password": "old-password"
+        },
+        "after": {
+          "config_value": "new-config",
+          "password": "new-password"
+        },
+        "after_unknown": {},
+        "before_sensitive": {
+          "config_value": true,
+          "password": true
+        },
+        "after_sensitive": {
+          "config_value": true,
+          "password": true
+        }
+      }
+    },
+    {
+      "address": "example_service.heuristic",
+      "mode": "managed",
+      "type": "example_service",
+      "name": "heuristic",
+      "change": {
+        "actions": ["update"],
+        "before": {
+          "api_token": "old-token"
+        },
+        "after": {
+          "api_token": "new-token"
+        },
+        "after_unknown": {}
+      }
+    },
+    {
+      "address": "aws_iam_policy.admin",
+      "mode": "managed",
+      "type": "aws_iam_policy",
+      "name": "admin",
+      "change": {
+        "actions": ["update"],
+        "before": {
+          "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":[\"ec2:DescribeInstances\"],\"Resource\":[\"*\"]}]}"
+        },
+        "after": {
+          "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":[\"*\"],\"Resource\":[\"*\"]}]}"
+        },
+        "after_unknown": {}
+      }
+    },
+    {
+      "address": "kubernetes_manifest.pod",
+      "mode": "managed",
+      "type": "kubernetes_manifest",
+      "name": "pod",
+      "change": {
+        "actions": ["update"],
+        "before": {
+          "manifest": {
+            "spec": {
+              "template": {
+                "spec": {
+                  "containers": [
+                    {
+                      "securityContext": {
+                        "privileged": false
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "after": {
+          "manifest": {
+            "spec": {
+              "template": {
+                "spec": {
+                  "containers": [
+                    {
+                      "securityContext": {
+                        "privileged": true
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "after_unknown": {}
+      }
+    },
+    {
+      "address": "helm_release.api",
+      "mode": "managed",
+      "type": "helm_release",
+      "name": "api",
+      "change": {
+        "actions": ["update"],
+        "before": {
+          "version": "1.0.0"
+        },
+        "after": {
+          "version": "1.1.0"
+        },
+        "after_unknown": {}
+      }
+    },
+    {
+      "address": "null_resource.noop",
+      "mode": "managed",
+      "type": "null_resource",
+      "name": "noop",
+      "change": {
+        "actions": ["no-op"],
+        "before": {
+          "id": "same"
+        },
+        "after": {
+          "id": "same"
+        },
+        "after_unknown": {}
+      }
+    }
+  ],
+  "output_changes": {
+    "endpoint": {
+      "change": {
+        "actions": ["update"],
+        "before": "old.example.com",
+        "after": "new.example.com",
+        "after_unknown": false
+      }
+    }
+  }
+}
