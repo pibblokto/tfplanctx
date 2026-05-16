@@ -1,0 +1,22 @@
+Terraform will perform the following actions:
+
+  # role memberships for backend developers will be created
+  + four google_project_iam_member resources for project "deepsearch-dev"
+
+  # direct role memberships for alice will be destroyed
+  - three google_project_iam_member resources for project "deepsearch-dev"
+
+  # google_artifact_registry_repository.deepsearch_dev_repository must be replaced
+-/+ resource "google_artifact_registry_repository" "deepsearch_dev_repository" {
+      ~ repository_id = "deepsearch-backend-repository" -> "deepsearch-backend-repository2"
+    }
+
+  # google_dns_record_set.dns_record will be updated in-place
+  ~ resource "google_dns_record_set" "dns_record" {
+      ~ ttl = 300 -> 400
+    }
+
+Changes to Outputs:
+  ~ artifact_registry_repository = "deepsearch-backend-repository" -> "deepsearch-backend-repository2-adasd"
+
+Plan: 5 to add, 1 to change, 4 to destroy.

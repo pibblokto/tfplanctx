@@ -12,7 +12,7 @@ func TestLineRenderer(t *testing.T) {
 	p := samplePlan()
 	got := RenderLine(p, Options{Limits: DefaultLimits()})
 	want := strings.Join([]string{
-		"TFP1 C=1 U=1 R=1 D=1 OUT=1 RISK=1",
+		"TFP1 C=1 U=1 R=1 D=1 Q=0 OUT=1 RISK=1",
 		"D|aws_db_instance.old|self|exists|null|risk=data_loss",
 		"R|aws_instance.app|ami|\"ami-old\"|\"ami-new\"|replace_path",
 		"C|aws_s3_bucket.logs|bucket|null|\"prod-logs-example\"|",

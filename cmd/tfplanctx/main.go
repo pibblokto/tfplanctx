@@ -21,10 +21,12 @@ type config struct {
 	format                        string
 	summary                       bool
 	riskOnly                      bool
+	detail                        bool
 	resource                      string
 	resourceType                  string
 	budget                        int
 	benchmark                     bool
+	txtPlanPath                   string
 	includeRead                   bool
 	includeNoOp                   bool
 	noColor                       bool
@@ -71,6 +73,7 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 	opts := render.Options{
 		Summary:     cfg.summary,
 		RiskOnly:    cfg.riskOnly,
+		Detail:      cfg.detail,
 		IncludeNoOp: cfg.includeNoOp,
 		Limits:      cfg.limits,
 	}
@@ -85,9 +88,46 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 		reportError(stderr, err)
 		return 1
 	}
+	var textPlanContent []byte
+	if cfg.txtPlanPath != "" {
+		textPlanContent, err = os.ReadFile(cfg.txtPlanPath)
+		if err != nil {
+			reportError(stderr, fmt.Errorf("read text plan %q: %w", cfg.txtPlanPath, err))
+			return 1
+		}
+	}
+
 	fmt.Fprint(stdout, output)
 	if cfg.benchmark {
-		fmt.Fprintln(stderr, benchmark.Compare(content, output).String())
+		reviewOpts := opts
+		reviewOpts.Detail = false
+		reviewOutput, reviewErr := render.Render("compact", view, reviewOpts)
+		if reviewErr != nil {
+			reportError(stderr, reviewErr)
+			return 1
+		}
+		detailOpts := opts
+		detailOpts.Detail = true
+		detailOutput, detailErr := render.Render("compact", view, detailOpts)
+		if detailErr != nil {
+			reportError(stderr, detailErr)
+			return 1
+		}
+		stats := render.CompactReviewStats(view, reviewOpts)
+		var textBaseline []byte
+		if cfg.txtPlanPath != "" {
+			textBaseline = textPlanContent
+		}
+		report := benchmark.CompareCompact(content, textBaseline, reviewOutput, detailOutput, benchmark.CompactStats{
+			Omitted:          stats.Omitted,
+			GroupedResources: stats.GroupedResources,
+			GroupCount:       stats.GroupCount,
+			TemplateCount:    stats.TemplateCount,
+			DictionaryCount:  stats.DictionaryCount,
+			LensResources:    stats.LensResources,
+			DriftSummarized:  stats.DriftSummarized,
+		})
+		fmt.Fprintln(stderr, report.String())
 	}
 
 	if cfg.detailedExitCode {
@@ -109,13 +149,15 @@ func parseArgs(args []string, stderr io.Writer) (config, error) {
 
 	fs := flag.NewFlagSet("tpc", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	fs.StringVar(&cfg.format, "format", "line", "output format: line, jsonl, or markdown")
+	fs.StringVar(&cfg.format, "format", "compact", "output format: compact, line, jsonl, or markdown")
 	fs.BoolVar(&cfg.summary, "summary", false, "emit one line per changed resource")
 	fs.BoolVar(&cfg.riskOnly, "risk-only", false, "emit only risky changed resources")
+	fs.BoolVar(&cfg.detail, "detail", false, "emit full compact resource records instead of review-mode compaction")
 	fs.StringVar(&cfg.resource, "resource", "", "emit only the exact Terraform resource address")
 	fs.StringVar(&cfg.resourceType, "type", "", "emit only the exact Terraform resource type")
 	fs.IntVar(&cfg.budget, "budget", 0, "approximate output character budget")
 	fs.BoolVar(&cfg.benchmark, "benchmark", false, "print approximate token savings to stderr")
+	fs.StringVar(&cfg.txtPlanPath, "txt-plan", "", "optional human-readable Terraform plan baseline for --benchmark")
 	fs.BoolVar(&cfg.includeRead, "include-read", false, "include read/data-source style changes")
 	fs.BoolVar(&cfg.includeNoOp, "include-noop", false, "include no-op resource addresses in summary mode")
 	fs.BoolVar(&cfg.noColor, "no-color", false, "compatibility flag; output never uses color")
@@ -133,8 +175,11 @@ func parseArgs(args []string, stderr io.Writer) (config, error) {
 	if err := fs.Parse(normalizedArgs); err != nil {
 		return cfg, err
 	}
-	if cfg.format != "line" && cfg.format != "jsonl" && cfg.format != "markdown" {
+	if cfg.format != "compact" && cfg.format != "line" && cfg.format != "jsonl" && cfg.format != "markdown" {
 		return cfg, fmt.Errorf("unsupported format %q", cfg.format)
+	}
+	if cfg.txtPlanPath != "" && !cfg.benchmark {
+		return cfg, fmt.Errorf("--txt-plan requires --benchmark")
 	}
 	if cfg.budget < 0 {
 		return cfg, fmt.Errorf("budget must be non-negative")
@@ -158,6 +203,8 @@ func reorderArgs(args []string) ([]string, error) {
 		"--resource":        {},
 		"--type":            {},
 		"--budget":          {},
+		"--txt-plan":        {},
+		"-txt-plan":         {},
 		"--max-value-len":   {},
 		"--max-list-items":  {},
 		"--max-object-keys": {},

@@ -39,14 +39,20 @@ func run(stdout io.Writer, fixtureDir string) error {
 		if err != nil {
 			return fmt.Errorf("parse %s: %w", path, err)
 		}
-		output, err := render.Render("line", parsed, render.Options{Limits: render.DefaultLimits()})
+		review, err := render.Render("compact", parsed, render.Options{Limits: render.DefaultLimits()})
 		if err != nil {
 			return fmt.Errorf("render %s: %w", path, err)
 		}
-		rows = append(rows, benchmark.Row{
+		detail, err := render.Render("compact", parsed, render.Options{Detail: true, Limits: render.DefaultLimits()})
+		if err != nil {
+			return fmt.Errorf("render detail %s: %w", path, err)
+		}
+		row := benchmark.Row{
 			Name:   filepath.Base(path),
-			Report: benchmark.Compare(data, output),
-		})
+			Review: benchmark.Compare(data, review),
+			Detail: benchmark.Compare(data, detail),
+		}
+		rows = append(rows, row)
 	}
 
 	return benchmark.WriteTable(stdout, rows)

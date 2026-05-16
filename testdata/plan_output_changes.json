@@ -1,0 +1,61 @@
+{
+  "resource_changes": [],
+  "output_changes": {
+    "created": {
+      "actions": ["create"],
+      "before": null,
+      "after": "new-value",
+      "after_unknown": false
+    },
+    "deleted": {
+      "actions": ["delete"],
+      "before": "old-value",
+      "after": null,
+      "after_unknown": false
+    },
+    "updated": {
+      "actions": ["update"],
+      "before": "old-value",
+      "after": "new-value",
+      "after_unknown": false
+    },
+    "unknown_after": {
+      "actions": ["update"],
+      "before": "old-value",
+      "after": null,
+      "after_unknown": true
+    },
+    "sensitive_output": {
+      "actions": ["update"],
+      "before": "old-secret",
+      "after": "new-secret",
+      "after_unknown": false,
+      "before_sensitive": true,
+      "after_sensitive": true
+    },
+    "complex_output": {
+      "actions": ["update"],
+      "before": {
+        "enabled": false,
+        "ports": [80]
+      },
+      "after": {
+        "enabled": true,
+        "ports": [80, 443]
+      },
+      "after_unknown": false
+    },
+    "long_output": {
+      "actions": ["update"],
+      "before": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "after": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "after_unknown": false
+    },
+    "ignored_noop": {
+      "actions": ["no-op"],
+      "before": "same",
+      "after": "same",
+      "after_unknown": false
+    }
+  }
+}
