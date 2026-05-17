@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/piblokto/tfplanctx/internal/benchmark"
-	"github.com/piblokto/tfplanctx/internal/plan"
-	"github.com/piblokto/tfplanctx/internal/render"
+	"github.com/pibblokto/tfplanctx/internal/benchmark"
+	"github.com/pibblokto/tfplanctx/internal/plan"
+	"github.com/pibblokto/tfplanctx/internal/render"
 )
 
 func main() {

@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/piblokto/tfplanctx/internal/plan"
-	"github.com/piblokto/tfplanctx/internal/render"
-	"github.com/piblokto/tfplanctx/internal/verify"
+	"github.com/pibblokto/tfplanctx/internal/plan"
+	"github.com/pibblokto/tfplanctx/internal/render"
+	"github.com/pibblokto/tfplanctx/internal/verify"
 )
 
 func TestCompactVerifierRejectsMissingResource(t *testing.T) {

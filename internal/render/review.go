@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/piblokto/tfplanctx/internal/codec"
-	"github.com/piblokto/tfplanctx/internal/plan"
+	"github.com/pibblokto/tfplanctx/internal/codec"
+	"github.com/pibblokto/tfplanctx/internal/plan"
 )
 
 const (

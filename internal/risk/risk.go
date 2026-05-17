@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/piblokto/tfplanctx/internal/diff"
+	"github.com/pibblokto/tfplanctx/internal/diff"
 )
 
 var statefulResourceTypes = map[string]struct{}{

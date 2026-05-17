@@ -3,7 +3,7 @@ package risk
 import (
 	"testing"
 
-	"github.com/piblokto/tfplanctx/internal/diff"
+	"github.com/pibblokto/tfplanctx/internal/diff"
 )
 
 func TestPublicIngressDetection(t *testing.T) {

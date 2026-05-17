@@ -5,7 +5,7 @@
 ## Quick install
 
 ```bash
-go install github.com/piblokto/tfplanctx/cmd/tpc@latest
+go install github.com/pibblokto/tfplanctx/cmd/tpc@latest
 ```
 
 Make sure your Go bin directory is on `PATH`:
