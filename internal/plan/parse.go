@@ -7,9 +7,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/piblokto/tfplanctx/internal/diff"
-	"github.com/piblokto/tfplanctx/internal/redact"
-	"github.com/piblokto/tfplanctx/internal/risk"
+	"github.com/pibblokto/tfplanctx/internal/diff"
+	"github.com/pibblokto/tfplanctx/internal/redact"
+	"github.com/pibblokto/tfplanctx/internal/risk"
 )
 
 // ParseOptions configures normalization behavior.

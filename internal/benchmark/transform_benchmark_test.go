@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/piblokto/tfplanctx/internal/budget"
-	"github.com/piblokto/tfplanctx/internal/plan"
-	"github.com/piblokto/tfplanctx/internal/render"
+	"github.com/pibblokto/tfplanctx/internal/budget"
+	"github.com/pibblokto/tfplanctx/internal/plan"
+	"github.com/pibblokto/tfplanctx/internal/render"
 )
 
 func BenchmarkTransformCompact(b *testing.B) {

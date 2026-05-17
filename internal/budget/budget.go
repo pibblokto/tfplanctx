@@ -3,8 +3,8 @@ package budget
 import (
 	"fmt"
 
-	"github.com/piblokto/tfplanctx/internal/plan"
-	"github.com/piblokto/tfplanctx/internal/render"
+	"github.com/pibblokto/tfplanctx/internal/plan"
+	"github.com/pibblokto/tfplanctx/internal/render"
 )
 
 // Fit progressively compresses output until it fits the approximate character budget.

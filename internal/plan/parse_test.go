@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/piblokto/tfplanctx/internal/plan"
-	"github.com/piblokto/tfplanctx/internal/redact"
+	"github.com/pibblokto/tfplanctx/internal/plan"
+	"github.com/pibblokto/tfplanctx/internal/redact"
 )
 
 func TestParseMainFixture(t *testing.T) {

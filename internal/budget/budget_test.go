@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/piblokto/tfplanctx/internal/plan"
-	"github.com/piblokto/tfplanctx/internal/render"
+	"github.com/pibblokto/tfplanctx/internal/plan"
+	"github.com/pibblokto/tfplanctx/internal/render"
 )
 
 func TestBudgetFallsBackToSummaryAndOmittedHeader(t *testing.T) {

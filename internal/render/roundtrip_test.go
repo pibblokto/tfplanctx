@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/piblokto/tfplanctx/internal/plan"
+	"github.com/pibblokto/tfplanctx/internal/plan"
 )
 
 func TestLineOutputMatchesNormalizedPlanChanges(t *testing.T) {

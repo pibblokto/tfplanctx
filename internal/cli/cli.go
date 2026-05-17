@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/piblokto/tfplanctx/internal/benchmark"
-	"github.com/piblokto/tfplanctx/internal/budget"
-	"github.com/piblokto/tfplanctx/internal/input"
-	"github.com/piblokto/tfplanctx/internal/plan"
-	"github.com/piblokto/tfplanctx/internal/redact"
-	"github.com/piblokto/tfplanctx/internal/render"
+	"github.com/pibblokto/tfplanctx/internal/benchmark"
+	"github.com/pibblokto/tfplanctx/internal/budget"
+	"github.com/pibblokto/tfplanctx/internal/input"
+	"github.com/pibblokto/tfplanctx/internal/plan"
+	"github.com/pibblokto/tfplanctx/internal/redact"
+	"github.com/pibblokto/tfplanctx/internal/render"
 )
 
 type Config struct {

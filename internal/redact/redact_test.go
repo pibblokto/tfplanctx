@@ -3,7 +3,7 @@ package redact
 import (
 	"testing"
 
-	"github.com/piblokto/tfplanctx/internal/diff"
+	"github.com/pibblokto/tfplanctx/internal/diff"
 )
 
 func TestHasHeuristicSecretMatchesNestedSensitivePath(t *testing.T) {

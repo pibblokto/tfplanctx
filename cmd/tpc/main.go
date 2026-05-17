@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/piblokto/tfplanctx/internal/cli"
+	"github.com/pibblokto/tfplanctx/internal/cli"
 )
 
 func main() {

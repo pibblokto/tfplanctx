@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/piblokto/tfplanctx/internal/plan"
+	"github.com/pibblokto/tfplanctx/internal/plan"
 )
 
 // Limits control deterministic value summarization.

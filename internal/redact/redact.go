@@ -3,7 +3,7 @@ package redact
 import (
 	"strings"
 
-	"github.com/piblokto/tfplanctx/internal/diff"
+	"github.com/pibblokto/tfplanctx/internal/diff"
 )
 
 var heuristicTerms = []string{
