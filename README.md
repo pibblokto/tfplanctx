@@ -64,10 +64,6 @@ make build
 
 This creates the CLI binary at `./tpc`.
 
-## Release process
-
-Releases are intentionally manual. In GitHub Actions, run the **release** workflow and provide a semantic version such as `0.1.0`. The workflow validates the version, runs tests and fixture benchmarks, builds cross-platform `tpc` archives, writes checksums, and creates the GitHub release/tag `v<version>`.
-
 ## Basic usage
 
 ```bash
@@ -300,7 +296,7 @@ tpc plan.json --benchmark --txt-plan plan.txt
 BENCH json_tokens=2210 json_chars=8837 txt_tokens=740 txt_chars=2958 review_tokens=284 review_chars=1134 detail_tokens=390 detail_chars=1558 review_vs_json_reduction=87.1% detail_vs_json_reduction=82.4% review_vs_txt_reduction=61.6% detail_vs_txt_reduction=47.3% omitted=12 grouped_resources=20 groups=2 lens_resources=0 templates=2 dict_values=0 drift_summarized=8
 ```
 
-The `review_vs_txt_reduction` field answers the more practical question: how much smaller is the default review output than the normal human-readable Terraform plan an engineer might otherwise paste into an agent.
+The `review_vs_txt_reduction` field answers the question "how much smaller is the default review output than the normal human-readable Terraform plan an engineer might otherwise paste into an agent.". While json comparison also exists, it shouldn't be seen as the primary indicator since json plans are significantly more verbose than human-readable plans.
 
 For a fixture-wide token-efficiency table, run:
 
