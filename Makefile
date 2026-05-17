@@ -7,7 +7,7 @@ test:
 	go test ./...
 
 build:
-	go build -o tpc ./cmd/tfplanctx
+	go build -o tpc ./cmd/tpc
 
 lint:
 	@if command -v golangci-lint >/dev/null 2>&1; then \

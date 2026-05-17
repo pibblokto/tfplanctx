@@ -1,0 +1,239 @@
+package cli
+
+import (
+	"context"
+	"flag"
+	"fmt"
+	"io"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/piblokto/tfplanctx/internal/benchmark"
+	"github.com/piblokto/tfplanctx/internal/budget"
+	"github.com/piblokto/tfplanctx/internal/input"
+	"github.com/piblokto/tfplanctx/internal/plan"
+	"github.com/piblokto/tfplanctx/internal/redact"
+	"github.com/piblokto/tfplanctx/internal/render"
+)
+
+type Config struct {
+	format                        string
+	summary                       bool
+	riskOnly                      bool
+	detail                        bool
+	resource                      string
+	resourceType                  string
+	budget                        int
+	benchmark                     bool
+	txtPlanPath                   string
+	includeRead                   bool
+	includeNoOp                   bool
+	noColor                       bool
+	detailedExitCode              bool
+	unsafeShowSensitive           bool
+	unsafeDisableSecretHeuristics bool
+	limits                        render.Limits
+	inputPath                     string
+}
+
+func Run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.Writer) int {
+	cfg, err := ParseArgs(args, stderr)
+	if err != nil {
+		reportError(stderr, err)
+		return 1
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+
+	content, err := input.Load(ctx, cfg.inputPath, stdin)
+	if err != nil {
+		reportError(stderr, err)
+		return 1
+	}
+
+	normalized, err := plan.Parse(content, plan.ParseOptions{
+		IncludeRead: cfg.includeRead,
+		Redact: redact.Config{
+			UnsafeShowSensitive:           cfg.unsafeShowSensitive,
+			UnsafeDisableSecretHeuristics: cfg.unsafeDisableSecretHeuristics,
+		},
+	})
+	if err != nil {
+		reportError(stderr, err)
+		return 1
+	}
+
+	view := normalized.Filter(cfg.resource, cfg.resourceType)
+	opts := render.Options{
+		Summary:     cfg.summary,
+		RiskOnly:    cfg.riskOnly,
+		Detail:      cfg.detail,
+		IncludeNoOp: cfg.includeNoOp,
+		Limits:      cfg.limits,
+	}
+
+	var output string
+	if cfg.budget > 0 {
+		output, _, err = budget.Fit(view, cfg.format, opts, cfg.budget)
+	} else {
+		output, err = render.Render(cfg.format, view, opts)
+	}
+	if err != nil {
+		reportError(stderr, err)
+		return 1
+	}
+	var textPlanContent []byte
+	if cfg.txtPlanPath != "" {
+		textPlanContent, err = os.ReadFile(cfg.txtPlanPath)
+		if err != nil {
+			reportError(stderr, fmt.Errorf("read text plan %q: %w", cfg.txtPlanPath, err))
+			return 1
+		}
+	}
+
+	fmt.Fprint(stdout, output)
+	if cfg.benchmark {
+		reviewOpts := opts
+		reviewOpts.Detail = false
+		reviewOutput, reviewErr := render.Render("compact", view, reviewOpts)
+		if reviewErr != nil {
+			reportError(stderr, reviewErr)
+			return 1
+		}
+		detailOpts := opts
+		detailOpts.Detail = true
+		detailOutput, detailErr := render.Render("compact", view, detailOpts)
+		if detailErr != nil {
+			reportError(stderr, detailErr)
+			return 1
+		}
+		stats := render.CompactReviewStats(view, reviewOpts)
+		var textBaseline []byte
+		if cfg.txtPlanPath != "" {
+			textBaseline = textPlanContent
+		}
+		report := benchmark.CompareCompact(content, textBaseline, reviewOutput, detailOutput, benchmark.CompactStats{
+			Omitted:          stats.Omitted,
+			GroupedResources: stats.GroupedResources,
+			GroupCount:       stats.GroupCount,
+			TemplateCount:    stats.TemplateCount,
+			DictionaryCount:  stats.DictionaryCount,
+			LensResources:    stats.LensResources,
+			DriftSummarized:  stats.DriftSummarized,
+		})
+		fmt.Fprintln(stderr, report.String())
+	}
+
+	if cfg.detailedExitCode {
+		switch {
+		case normalized.HasRisks():
+			return 3
+		case normalized.HasChanges():
+			return 2
+		default:
+			return 0
+		}
+	}
+	return 0
+}
+
+func ParseArgs(args []string, stderr io.Writer) (Config, error) {
+	var cfg Config
+	cfg.limits = render.DefaultLimits()
+
+	fs := flag.NewFlagSet("tpc", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	fs.StringVar(&cfg.format, "format", "compact", "output format: compact, line, jsonl, or markdown")
+	fs.BoolVar(&cfg.summary, "summary", false, "emit one line per changed resource")
+	fs.BoolVar(&cfg.riskOnly, "risk-only", false, "emit only risky changed resources")
+	fs.BoolVar(&cfg.detail, "detail", false, "emit full compact resource records instead of review-mode compaction")
+	fs.StringVar(&cfg.resource, "resource", "", "emit only the exact Terraform resource address")
+	fs.StringVar(&cfg.resourceType, "type", "", "emit only the exact Terraform resource type")
+	fs.IntVar(&cfg.budget, "budget", 0, "approximate output character budget")
+	fs.BoolVar(&cfg.benchmark, "benchmark", false, "print approximate token savings to stderr")
+	fs.StringVar(&cfg.txtPlanPath, "txt-plan", "", "optional human-readable Terraform plan baseline for --benchmark")
+	fs.BoolVar(&cfg.includeRead, "include-read", false, "include read/data-source style changes")
+	fs.BoolVar(&cfg.includeNoOp, "include-noop", false, "include no-op resource addresses in summary mode")
+	fs.BoolVar(&cfg.noColor, "no-color", false, "compatibility flag; output never uses color")
+	fs.BoolVar(&cfg.detailedExitCode, "detailed-exitcode", false, "use Terraform-like detailed exit codes")
+	fs.BoolVar(&cfg.unsafeShowSensitive, "unsafe-show-sensitive", false, "print Terraform-marked sensitive values")
+	fs.BoolVar(&cfg.unsafeDisableSecretHeuristics, "unsafe-disable-secret-heuristics", false, "disable heuristic secret-path redaction")
+	fs.IntVar(&cfg.limits.MaxValueLen, "max-value-len", cfg.limits.MaxValueLen, "maximum rendered value length before summarization")
+	fs.IntVar(&cfg.limits.MaxListItems, "max-list-items", cfg.limits.MaxListItems, "maximum list items before summarization")
+	fs.IntVar(&cfg.limits.MaxObjectKeys, "max-object-keys", cfg.limits.MaxObjectKeys, "maximum object keys before summarization")
+
+	normalizedArgs, err := reorderArgs(args)
+	if err != nil {
+		return cfg, err
+	}
+	if err := fs.Parse(normalizedArgs); err != nil {
+		return cfg, err
+	}
+	if cfg.format != "compact" && cfg.format != "line" && cfg.format != "jsonl" && cfg.format != "markdown" {
+		return cfg, fmt.Errorf("unsupported format %q", cfg.format)
+	}
+	if cfg.txtPlanPath != "" && !cfg.benchmark {
+		return cfg, fmt.Errorf("--txt-plan requires --benchmark")
+	}
+	if cfg.budget < 0 {
+		return cfg, fmt.Errorf("budget must be non-negative")
+	}
+	if cfg.limits.MaxValueLen < 0 || cfg.limits.MaxListItems < 0 || cfg.limits.MaxObjectKeys < 0 {
+		return cfg, fmt.Errorf("value limits must be non-negative")
+	}
+
+	positionals := fs.Args()
+	if len(positionals) != 1 {
+		return cfg, fmt.Errorf("expected exactly one input path or '-' for stdin")
+	}
+	cfg.inputPath = positionals[0]
+	_ = cfg.noColor
+	return cfg, nil
+}
+
+func reorderArgs(args []string) ([]string, error) {
+	valueFlags := map[string]struct{}{
+		"--format":          {},
+		"--resource":        {},
+		"--type":            {},
+		"--budget":          {},
+		"--txt-plan":        {},
+		"-txt-plan":         {},
+		"--max-value-len":   {},
+		"--max-list-items":  {},
+		"--max-object-keys": {},
+	}
+
+	var flags []string
+	var positionals []string
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if arg == "--" {
+			positionals = append(positionals, args[i+1:]...)
+			break
+		}
+		if arg == "-" || !strings.HasPrefix(arg, "-") {
+			positionals = append(positionals, arg)
+			continue
+		}
+		flags = append(flags, arg)
+		name := arg
+		if idx := strings.IndexByte(arg, '='); idx >= 0 {
+			name = arg[:idx]
+		}
+		if _, ok := valueFlags[name]; ok && !strings.Contains(arg, "=") {
+			if i+1 >= len(args) {
+				return nil, fmt.Errorf("flag %s requires a value", arg)
+			}
+			i++
+			flags = append(flags, args[i])
+		}
+	}
+	return append(flags, positionals...), nil
+}
+
+func reportError(stderr io.Writer, err error) {
+	fmt.Fprintf(stderr, "tpc: %v\n", err)
+}

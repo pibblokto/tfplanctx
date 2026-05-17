@@ -1,0 +1,48 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - feature/**
+      - bugfix/**
+      - chore/**
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: make test
+      - run: make build
+
+  fixture-benchmark:
+    name: fixture benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Run fixture benchmark table
+        run: |
+          make bench | tee benchmark.txt
+          {
+            echo '## Fixture benchmark'
+            echo
+            echo '```text'
+            cat benchmark.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

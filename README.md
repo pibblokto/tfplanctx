@@ -1,6 +1,44 @@
 # tfplanctx
 
-tfplanctx is a production-oriented CLI that reduces Terraform plan token usage for coding agents. It converts either a saved binary Terraform plan or Terraform JSON plan output into a compact, deterministic, grepable representation that is easier for agents to inspect without spending context on raw plan noise.
+**tfplanctx** is a production-oriented Terraform plan compressor for coding agents. The CLI command is **`tpc`**. It converts either a saved binary Terraform plan or Terraform JSON plan output into a compact, deterministic, grepable representation that agents can inspect without burning context on raw plan noise.
+
+## Quick install
+
+```bash
+go install github.com/piblokto/tfplanctx/cmd/tpc@latest
+```
+
+Make sure your Go bin directory is on `PATH`:
+
+```bash
+export PATH="$(go env GOPATH)/bin:$PATH"
+```
+
+Then use it directly:
+
+```bash
+terraform plan -out=tfplan
+tpc tfplan
+```
+
+## Token reduction
+
+Review mode is designed to be materially smaller than both Terraform JSON and the human-readable Terraform plan engineers usually paste into agents:
+
+| Baseline | Observed review-mode reduction |
+| --- | ---: |
+| Terraform JSON plan | **92–95% fewer approximate tokens** |
+| Human-readable Terraform plan | **55–62% fewer approximate tokens** |
+
+Human-readable plans are already much smaller than Terraform JSON, so the second row is the harder comparison and the more practical one for day-to-day agent use. Results vary with plan shape, but the default output is optimized for repetitive real plans rather than only synthetic fixtures.
+
+To measure your own plan:
+
+```bash
+tpc plan.json --benchmark --txt-plan plan.txt
+```
+
+The benchmark uses the deterministic heuristic `ceil(chars / 4)`, so it is best read as a stable comparison metric rather than a model-specific tokenizer count.
 
 ## What it does
 
@@ -18,7 +56,7 @@ tfplanctx is a production-oriented CLI that reduces Terraform plan token usage f
 - It does **not** apply infrastructure changes
 - It does **not** require Terraform to be installed when the input is already JSON
 
-## Build
+## Build from source
 
 ```bash
 make build
@@ -26,44 +64,42 @@ make build
 
 This creates the CLI binary at `./tpc`.
 
+## Release process
+
+Releases are intentionally manual. In GitHub Actions, run the **release** workflow and provide a semantic version such as `0.1.0`. The workflow validates the version, runs tests and fixture benchmarks, builds cross-platform `tpc` archives, writes checksums, and creates the GitHub release/tag `v<version>`.
+
 ## Basic usage
 
 ```bash
 terraform plan -out=tfplan
-tfplanctx tfplan
-```
-
-If you build from this repository directly, use the generated binary name:
-
-```bash
-./tpc tfplan
+tpc tfplan
 ```
 
 ### Example Terraform workflow
 
 ```bash
 terraform plan -out=tfplan
-tfplanctx tfplan --summary
-tfplanctx tfplan --risk-only
-tfplanctx tfplan --budget 4000
+tpc tfplan --summary
+tpc tfplan --risk-only
+tpc tfplan --budget 4000
 ```
 
 ### Stdin example
 
 ```bash
-terraform show -json tfplan | tfplanctx -
+terraform show -json tfplan | tpc -
 ```
 
 ### Risk-only example
 
 ```bash
-tfplanctx tfplan --risk-only
+tpc tfplan --risk-only
 ```
 
 ### Budget example
 
 ```bash
-tfplanctx tfplan --budget 4000
+tpc tfplan --budget 4000
 ```
 
 ## Output format
@@ -80,6 +116,8 @@ C|aws_s3_bucket.logs|bucket="prod-logs-example"|
 U|aws_security_group.web|ingress[0].cidr_blocks=["10.0.0.0/8"]->["0.0.0.0/0"]|risk=public_ingress
 O|endpoint|"old"->"new"|
 ```
+
+For the full grammar, invariants, and escaping rules, see [`docs/TFP.md`](docs/TFP.md).
 
 The header reports changed-resource counts:
 
@@ -255,16 +293,14 @@ BENCH json_tokens=2210 json_chars=8837 review_tokens=284 review_chars=1134 detai
 By default, the baseline is the Terraform JSON input that tfplanctx parses. If you also have the human-readable Terraform plan, add `--txt-plan` to compare tfplanctx against both JSON and text:
 
 ```bash
-tfplanctx plan.json --benchmark --txt-plan plan.txt
+tpc plan.json --benchmark --txt-plan plan.txt
 ```
 
 ```text
 BENCH json_tokens=2210 json_chars=8837 txt_tokens=740 txt_chars=2958 review_tokens=284 review_chars=1134 detail_tokens=390 detail_chars=1558 review_vs_json_reduction=87.1% detail_vs_json_reduction=82.4% review_vs_txt_reduction=61.6% detail_vs_txt_reduction=47.3% omitted=12 grouped_resources=20 groups=2 lens_resources=0 templates=2 dict_values=0 drift_summarized=8
 ```
 
-The `review_vs_txt_reduction` field answers the more practical question: how much smaller is the default review output than the normal human-readable Terraform plan an engineer might otherwise paste into an agent. The benchmark uses the deterministic heuristic `ceil(chars / 4)` rather than a model-specific tokenizer, so it is useful for comparing transformations but should be treated as approximate.
-
-On larger real plans, current review-mode runs have shown roughly **92–95% reduction versus Terraform JSON plans** and **55–62% reduction versus human-readable Terraform plans**. The human-readable plan is already much smaller than Terraform JSON, so the second range is the more demanding comparison; exact results still depend on plan shape.
+The `review_vs_txt_reduction` field answers the more practical question: how much smaller is the default review output than the normal human-readable Terraform plan an engineer might otherwise paste into an agent.
 
 For a fixture-wide token-efficiency table, run:
 
@@ -272,7 +308,7 @@ For a fixture-wide token-efficiency table, run:
 make bench
 ```
 
-This compares each JSON fixture with both TFP2 review and TFP2 detail output. For text-plan comparisons, use `--txt-plan` with an actual matching human-readable plan so the baseline is real rather than inferred from fixtures.
+This compares each JSON fixture with both TFP2 review and TFP2 detail output. For text-plan comparisons, use `--txt-plan` with the exact matching human-readable plan rather than the abbreviated semantic fixture references.
 
 For developer runtime benchmarks of the parse/render pipeline, run:
 
@@ -299,10 +335,10 @@ These are conservative rule-based hints, not AI judgements.
 Start broad, then narrow:
 
 ```bash
-tfplanctx tfplan --summary
-tfplanctx tfplan --risk-only
-tfplanctx tfplan --budget 4000
-tfplanctx tfplan --resource aws_security_group.web
+tpc tfplan --summary
+tpc tfplan --risk-only
+tpc tfplan --budget 4000
+tpc tfplan --resource aws_security_group.web
 ```
 
 This keeps raw Terraform JSON as a fallback instead of the first thing an agent reads.
